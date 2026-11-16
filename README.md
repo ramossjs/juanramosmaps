@@ -16,6 +16,15 @@ Esta aplicación se despliega como un servicio web Docker en Render.
 
 El navegador debe estar usando HTTPS para que la geolocalización funcione.
 
+## Generar IPA para iOS
+
+El workflow `Build unsigned iOS IPA` de GitHub Actions compila la aplicación
+sin firma cuando se hace push a `main` o se ejecuta manualmente desde
+**Actions > Build unsigned iOS > Run workflow**. El archivo
+`maps-and-geolocation-ios-unsigned` queda disponible como artifact para
+descargarlo. El IPA no está firmado; debes firmarlo con tu certificado y
+provisioning profile antes de instalarlo mediante sideloading.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

@@ -1,0 +1,67 @@
+name: Build unsigned iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.7
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze Dart code
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build unsigned IPA
+        run: flutter build ipa --release --no-codesign
+
+      - name: Package unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_path="$(find build/ios/archive -type d -path '*/Products/Applications/*.app' -print -quit)"
+          if [[ -z "$app_path" ]]; then
+            echo "No .app bundle found in the generated archive." >&2
+            exit 1
+          fi
+
+          rm -rf build/ios/ipa/unsigned-payload
+          mkdir -p build/ios/ipa/unsigned-payload/Payload
+          cp -R "$app_path" build/ios/ipa/unsigned-payload/Payload/
+          (
+            cd build/ios/ipa/unsigned-payload
+            zip -qry ../maps-and-geolocation-unsigned.ipa Payload
+          )
+          rm -rf build/ios/ipa/unsigned-payload
+
+      - name: Verify IPA was created
+        run: |
+          test -s build/ios/ipa/maps-and-geolocation-unsigned.ipa
+          unzip -l build/ios/ipa/maps-and-geolocation-unsigned.ipa | grep -q '^.*Payload/.*\.app/'
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: maps-and-geolocation-ios-unsigned
+          path: build/ios/ipa/maps-and-geolocation-unsigned.ipa
+          if-no-files-found: error
